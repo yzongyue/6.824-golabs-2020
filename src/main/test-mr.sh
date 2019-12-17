@@ -33,7 +33,7 @@ rm -f mr-*
 sort mr-out-0 > mr-correct-wc.txt
 rm -f mr-out*
 
-echo Starting wc test.
+echo '***' Starting wc test.
 
 ../mrmaster ../pg*txt &
 sleep 1
@@ -46,10 +46,10 @@ sleep 1
 sort mr-out* > mr-wc-all
 if cmp mr-wc-all mr-correct-wc.txt
 then
-  echo wc test: passed
+  echo '---' wc test: PASS
 else
-  echo wc output is not the same as mr-correct-wc.txt
-  echo wc test: failed
+  echo '---' wc output is not the same as mr-correct-wc.txt
+  echo '---' wc test: FAIL
   exit 1
 fi
 
@@ -61,7 +61,7 @@ rm -f mr-*
 sort mr-out-0 > mr-correct-indexer.txt
 rm -f mr-out*
 
-echo Starting indexer test.
+echo '***' Starting indexer test.
 
 ../mrmaster ../pg*txt &
 sleep 1
@@ -73,17 +73,17 @@ sleep 1
 sort mr-out* > mr-indexer-all
 if cmp mr-indexer-all mr-correct-indexer.txt
 then
-  echo indexer test: passed
+  echo '---' indexer test: PASS
 else
-  echo indexer output is not the same as mr-correct-indexer.txt
-  echo indexer test: failed
+  echo '---' indexer output is not the same as mr-correct-indexer.txt
+  echo '---' indexer test: FAIL
   exit 1
 fi
 
 
 
 
-echo Starting map parallelism test.
+echo '***' Starting map parallelism test.
 
 rm -f mr-out* mr-worker*
 
@@ -96,22 +96,22 @@ sleep 1
 NT=`cat mr-out* | grep '^times-' | wc -l | sed 's/ //g'`
 if [ "$NT" != "2" ]
 then
-  echo saw "$NT" workers rather than 2
-  echo map parallelism test: failed
+  echo '---' saw "$NT" workers rather than 2
+  echo '---' map parallelism test: FAIL
   exit 1
 fi
 
 if cat mr-out* | grep '^parallel.* 2' > /dev/null
 then
-  echo map parallelism test: passed
+  echo '---' map parallelism test: PASS
 else
-  echo map workers did not run in parallel
-  echo map parallelism test: failed
+  echo '---' map workers did not run in parallel
+  echo '---' map parallelism test: FAIL
   exit 1
 fi
 
 
-echo Starting reduce parallelism test.
+echo '***' Starting reduce parallelism test.
 
 rm -f mr-out* mr-worker*
 
@@ -124,11 +124,11 @@ sleep 1
 NT=`cat mr-out* | grep '^[a-z] 2' | wc -l | sed 's/ //g'`
 if [ "$NT" -lt "2" ]
 then
-  echo too few parallel reduces.
-  echo reduce parallelism test: failed
+  echo '---' too few parallel reduces.
+  echo '---' reduce parallelism test: FAIL
   exit 1
 else
-  echo reduce parallelism test: passed
+  echo '---' reduce parallelism test: PASS
 fi
 
 
@@ -138,7 +138,7 @@ fi
 sort mr-out-0 > mr-correct-crash.txt
 rm -f mr-out*
 
-echo Starting crash test.
+echo '***' Starting crash test.
 
 rm -f mr-done
 (../mrmaster ../pg*txt ; touch mr-done ) &
@@ -173,11 +173,11 @@ rm mr-socket
 sort mr-out* > mr-crash-all
 if cmp mr-crash-all mr-correct-crash.txt
 then
-  echo crash test: passed
+  echo '---' crash test: PASS
 else
-  echo crash output is not the same as mr-correct-crash.txt
-  echo crash test: failed
+  echo '---' crash output is not the same as mr-correct-crash.txt
+  echo '---' crash test: FAIL
   exit 1
 fi
 
-echo PASSED ALL TESTS
+echo '***' PASSED ALL TESTS

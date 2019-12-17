@@ -15,10 +15,6 @@ import "fmt"
 import "log"
 
 func main() {
-	// uncomment if you want to send the Example RPC
-	// to the master.
-	// mr.CallExample()
-
 	if len(os.Args) != 2 {
 		fmt.Fprintf(os.Stderr, "Usage: mrworker ../mrapps/xxx.so\n")
 		os.Exit(1)
