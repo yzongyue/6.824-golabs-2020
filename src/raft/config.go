@@ -43,13 +43,14 @@ type config struct {
 	applyErr  []string // from apply channel readers
 	connected []bool   // whether each server is on the net
 	saved     []*Persister
-	endnames  [][]string    // the port file names each sends to
-	logs      []map[int]int // copy of each server's committed entries
-	start     time.Time     // time at which make_config() was called
+	endnames  [][]string            // the port file names each sends to
+	logs      []map[int]interface{} // copy of each server's committed entries
+	start     time.Time             // time at which make_config() was called
 	// begin()/end() statistics
 	t0        time.Time // time at which test_test.go called cfg.begin()
 	rpcs0     int       // rpcTotal() at start of test
 	cmds0     int       // number of agreements
+	bytes0    int64
 	maxIndex  int
 	maxIndex0 int
 }
@@ -73,7 +74,7 @@ func make_config(t *testing.T, n int, unreliable bool) *config {
 	cfg.connected = make([]bool, cfg.n)
 	cfg.saved = make([]*Persister, cfg.n)
 	cfg.endnames = make([][]string, cfg.n)
-	cfg.logs = make([]map[int]int, cfg.n)
+	cfg.logs = make([]map[int]interface{}, cfg.n)
 	cfg.start = time.Now()
 
 	cfg.setunreliable(unreliable)
@@ -82,7 +83,7 @@ func make_config(t *testing.T, n int, unreliable bool) *config {
 
 	// create a full set of Rafts.
 	for i := 0; i < cfg.n; i++ {
-		cfg.logs[i] = map[int]int{}
+		cfg.logs[i] = map[int]interface{}{}
 		cfg.start1(i)
 	}
 
@@ -170,7 +171,8 @@ func (cfg *config) start1(i int) {
 			err_msg := ""
 			if m.CommandValid == false {
 				// ignore other types of ApplyMsg
-			} else if v, ok := (m.Command).(int); ok {
+			} else {
+				v := m.Command
 				cfg.mu.Lock()
 				for j := 0; j < len(cfg.logs); j++ {
 					if old, oldok := cfg.logs[j][m.CommandIndex]; oldok && old != v {
@@ -189,8 +191,6 @@ func (cfg *config) start1(i int) {
 				if m.CommandIndex > 1 && prevok == false {
 					err_msg = fmt.Sprintf("server %v apply out of order %v", i, m.CommandIndex)
 				}
-			} else {
-				err_msg = fmt.Sprintf("committed command %v is not an int", m.Command)
 			}
 
 			if err_msg != "" {
@@ -289,6 +289,10 @@ func (cfg *config) setunreliable(unrel bool) {
 	cfg.net.Reliable(!unrel)
 }
 
+func (cfg *config) bytesTotal() int64 {
+	return cfg.net.GetTotalBytes()
+}
+
 func (cfg *config) setlongreordering(longrel bool) {
 	cfg.net.LongReordering(longrel)
 }
@@ -358,7 +362,7 @@ func (cfg *config) checkNoLeader() {
 // how many servers think a log entry is committed?
 func (cfg *config) nCommitted(index int) (int, interface{}) {
 	count := 0
-	cmd := -1
+	var cmd interface{} = nil
 	for i := 0; i < len(cfg.rafts); i++ {
 		if cfg.applyErr[i] != "" {
 			cfg.t.Fatal(cfg.applyErr[i])
@@ -423,7 +427,7 @@ func (cfg *config) wait(index int, n int, startTerm int) interface{} {
 // times, in case a leader fails just after Start().
 // if retry==false, calls Start() only once, in order
 // to simplify the early Lab 2B tests.
-func (cfg *config) one(cmd int, expectedServers int, retry bool) int {
+func (cfg *config) one(cmd interface{}, expectedServers int, retry bool) int {
 	t0 := time.Now()
 	starts := 0
 	for time.Since(t0).Seconds() < 10 {
@@ -454,7 +458,7 @@ func (cfg *config) one(cmd int, expectedServers int, retry bool) int {
 				nd, cmd1 := cfg.nCommitted(index)
 				if nd > 0 && nd >= expectedServers {
 					// committed
-					if cmd2, ok := cmd1.(int); ok && cmd2 == cmd {
+					if cmd1 == cmd {
 						// and it was the command we submitted.
 						return index
 					}
@@ -479,6 +483,7 @@ func (cfg *config) begin(description string) {
 	fmt.Printf("%s ...\n", description)
 	cfg.t0 = time.Now()
 	cfg.rpcs0 = cfg.rpcTotal()
+	cfg.bytes0 = cfg.bytesTotal()
 	cfg.cmds0 = 0
 	cfg.maxIndex0 = cfg.maxIndex
 }
@@ -491,13 +496,14 @@ func (cfg *config) end() {
 	cfg.checkTimeout()
 	if cfg.t.Failed() == false {
 		cfg.mu.Lock()
-		t := time.Since(cfg.t0).Seconds()     // real time
-		npeers := cfg.n                       // number of Raft peers
-		nrpc := cfg.rpcTotal() - cfg.rpcs0    // number of RPC sends
-		ncmds := cfg.maxIndex - cfg.maxIndex0 // number of Raft agreements reported
+		t := time.Since(cfg.t0).Seconds()       // real time
+		npeers := cfg.n                         // number of Raft peers
+		nrpc := cfg.rpcTotal() - cfg.rpcs0      // number of RPC sends
+		nbytes := cfg.bytesTotal() - cfg.bytes0 // number of bytes
+		ncmds := cfg.maxIndex - cfg.maxIndex0   // number of Raft agreements reported
 		cfg.mu.Unlock()
 
 		fmt.Printf("  ... Passed --")
-		fmt.Printf("  %4.1f  %d %4d %4d\n", t, npeers, nrpc, ncmds)
+		fmt.Printf("  %4.1f  %d %4d %7d %4d\n", t, npeers, nrpc, nbytes, ncmds)
 	}
 }
