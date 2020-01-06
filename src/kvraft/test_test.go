@@ -147,7 +147,8 @@ func partitioner(t *testing.T, cfg *config, ch chan bool, done *int32) {
 // servers crash after the period is over and restart.  If partitions is set,
 // the test repartitions the network concurrently with the clients and servers. If
 // maxraftstate is a positive number, the size of the state for Raft (i.e., log
-// size) shouldn't exceed 2*maxraftstate.
+// size) shouldn't exceed 2*maxraftstate. If maxraftstate is negative,
+// snapshots shouldn't be used.
 func GenericTest(t *testing.T, part string, nclients int, unreliable bool, crash bool, partitions bool, maxraftstate int) {
 
 	title := "Test: "
@@ -274,6 +275,13 @@ func GenericTest(t *testing.T, part string, nclients int, unreliable bool, crash
 			sz := cfg.LogSize()
 			if sz > 2*maxraftstate {
 				t.Fatalf("logs were not trimmed (%v > 2*%v)", sz, maxraftstate)
+			}
+		}
+		if maxraftstate < 0 {
+			// Check that snapshots are not used
+			ssz := cfg.SnapshotSize()
+			if ssz > 0 {
+				t.Fatalf("snapshot too large (%v), should not be used when maxraftstate = %d", ssz, maxraftstate)
 			}
 		}
 	}
