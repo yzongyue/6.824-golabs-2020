@@ -19,10 +19,10 @@ package raft
 
 import "sync"
 import "sync/atomic"
-import "labrpc"
+import "../labrpc"
 
 // import "bytes"
-// import "labgob"
+// import "../labgob"
 
 
 
