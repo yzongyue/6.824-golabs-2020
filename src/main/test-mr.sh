@@ -43,7 +43,7 @@ sleep 1
 ../mrworker ../../mrapps/wc.so &
 ../mrworker ../../mrapps/wc.so
 
-sort mr-out* | grep . > mr-wc-all
+sort mr-out* > mr-wc-all
 if cmp mr-wc-all mr-correct-wc.txt
 then
   echo '---' wc test: PASS
@@ -70,7 +70,7 @@ sleep 1
 ../mrworker ../../mrapps/indexer.so &
 ../mrworker ../../mrapps/indexer.so
 
-sort mr-out* | grep . > mr-indexer-all
+sort mr-out* > mr-indexer-all
 if cmp mr-indexer-all mr-correct-indexer.txt
 then
   echo '---' indexer test: PASS
@@ -170,7 +170,7 @@ wait
 wait
 
 rm mr-socket
-sort mr-out* | grep . > mr-crash-all
+sort mr-out* > mr-crash-all
 if cmp mr-crash-all mr-correct-crash.txt
 then
   echo '---' crash test: PASS
