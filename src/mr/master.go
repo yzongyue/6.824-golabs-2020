@@ -60,5 +60,6 @@ func MakeMaster(files []string, nReduce int) *Master {
 	// Your code here.
 
 
+	m.server()
 	return &m
 }
