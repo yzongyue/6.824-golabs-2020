@@ -3,7 +3,7 @@ package main
 //
 // simple sequential MapReduce.
 //
-// go run mrsequential.go ../mrapps/wc.so pg*.txt
+// go run mrsequential.go wc.so pg*.txt
 //
 
 import "fmt"
@@ -24,7 +24,7 @@ func (a ByKey) Less(i, j int) bool { return a[i].Key < a[j].Key }
 
 func main() {
 	if len(os.Args) < 3 {
-		fmt.Fprintf(os.Stderr, "Usage: mrsequential ../mrapps/xxx.so inputfiles...\n")
+		fmt.Fprintf(os.Stderr, "Usage: mrsequential xxx.so inputfiles...\n")
 		os.Exit(1)
 	}
 

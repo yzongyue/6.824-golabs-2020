@@ -5,7 +5,9 @@ package main
 // in ../mr/worker.go. typically there will be
 // multiple worker processes, talking to one master.
 //
-// go run mrworker.go ../mrapps/wc.so
+// go run mrworker.go wc.so
+//
+// Please do not change this file.
 //
 
 import "../mr"
@@ -16,7 +18,7 @@ import "log"
 
 func main() {
 	if len(os.Args) != 2 {
-		fmt.Fprintf(os.Stderr, "Usage: mrworker ../mrapps/xxx.so\n")
+		fmt.Fprintf(os.Stderr, "Usage: mrworker xxx.so\n")
 		os.Exit(1)
 	}
 

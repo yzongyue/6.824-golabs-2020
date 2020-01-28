@@ -3,6 +3,8 @@ package mr
 //
 // RPC definitions.
 //
+// remember to capitalize all names.
+//
 
 //
 // example to show how to declare the arguments

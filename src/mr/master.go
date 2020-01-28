@@ -17,6 +17,8 @@ type Master struct {
 //
 // an example RPC handler.
 //
+// the RPC argument and reply types are defined in rpc.go.
+//
 func (m *Master) Example(args *ExampleArgs, reply *ExampleReply) error {
 	reply.Y = args.X + 1
 	return nil
@@ -53,6 +55,7 @@ func (m *Master) Done() bool {
 
 //
 // create a Master.
+// main/mrmaster.go calls this function.
 //
 func MakeMaster(files []string, nReduce int) *Master {
 	m := Master{}
