@@ -40,7 +40,7 @@ LABS=" lab1 lab2a lab2b lab2c lab3a lab3b lab4a lab4b "
 			cat api.key.fix | tr -d '\n' > api.key ; \
 			rm api.key.fix ; \
 			curl -F file=@$@-handin.tar.gz -F "key=<api.key" \
-			https://6824.scripts.mit.edu/2018/handin.py/upload > /dev/null || { \
+			https://6824.scripts.mit.edu/2020/handin.py/upload > /dev/null || { \
 				echo ; \
 				echo "Submit seems to have failed."; \
 				echo "Please upload the tarball manually on the submission website."; } \
