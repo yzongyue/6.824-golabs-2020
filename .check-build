@@ -42,6 +42,7 @@ main() {
 
     # copy existing directory
     tmpdir="$(mktemp -d)"
+    find src -type s -delete # cp can't copy sockets
     cp -r src "$tmpdir"
     orig="$PWD"
     cd "$tmpdir"
