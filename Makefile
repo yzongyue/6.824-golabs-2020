@@ -16,6 +16,10 @@ LABS=" lab1 lab2a lab2b lab2c lab3a lab3b lab4a lab4b "
 			"--exclude=src/main/mr-*" \
 			"--exclude=mrtmp.*" \
 			"--exclude=src/main/diff.out" \
+			"--exclude=src/main/mrmaster" \
+			"--exclude=src/main/mrsequential" \
+			"--exclude=src/main/mrworker" \
+			"--exclude=*.so" \
 			Makefile src; \
 		if ! test -e api.key ; then \
 			echo "Missing $(PWD)/api.key. Please create the file with your key in it or submit the $@-handin.tar.gz via the web interface."; \
