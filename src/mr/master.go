@@ -56,6 +56,7 @@ func (m *Master) Done() bool {
 //
 // create a Master.
 // main/mrmaster.go calls this function.
+// nReduce is the number of reduce tasks to use.
 //
 func MakeMaster(files []string, nReduce int) *Master {
 	m := Master{}

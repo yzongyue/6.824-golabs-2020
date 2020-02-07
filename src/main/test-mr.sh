@@ -46,6 +46,8 @@ sleep 1
 ../mrworker ../../mrapps/wc.so &
 
 # wait for one of the processes to exit.
+# under bash, this waits for all processes,
+# including the master.
 wait
 
 # the master or a worker has exited. since workers are required
@@ -62,7 +64,7 @@ else
   exit 1
 fi
 
-# wait for the other processes to exit.
+# wait for remaining workers and master to exit.
 wait ; wait ; wait
 
 # now indexer
@@ -93,8 +95,6 @@ else
 fi
 
 wait ; wait
-
-
 
 
 echo '***' Starting map parallelism test.
@@ -148,7 +148,6 @@ else
 fi
 
 wait ; wait
-
 
 
 # generate the correct output
