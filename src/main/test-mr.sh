@@ -164,19 +164,22 @@ sleep 1
 # start multiple workers
 ../mrworker ../../mrapps/crash.so &
 
-( while [ -e mr-socket -a ! -f mr-done ]
+# mimic rpc.go's masterSock()
+SOCKNAME=/var/tmp/824-mr-`id -u`
+
+( while [ -e $SOCKNAME -a ! -f mr-done ]
   do
     ../mrworker ../../mrapps/crash.so 
     sleep 1
   done ) &
 
-( while [ -e mr-socket -a ! -f mr-done ]
+( while [ -e $SOCKNAME -a ! -f mr-done ]
   do
     ../mrworker ../../mrapps/crash.so 
     sleep 1
   done ) &
 
-while [ -e mr-socket -a ! -f mr-done ]
+while [ -e $SOCKNAME -a ! -f mr-done ]
 do
   ../mrworker ../../mrapps/crash.so 
   sleep 1
@@ -186,7 +189,7 @@ wait
 wait
 wait
 
-rm mr-socket
+rm $SOCKNAME
 sort mr-out* | grep . > mr-crash-all
 if cmp mr-crash-all mr-correct-crash.txt
 then
