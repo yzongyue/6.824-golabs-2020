@@ -32,8 +32,9 @@ func (m *Master) server() {
 	rpc.Register(m)
 	rpc.HandleHTTP()
 	//l, e := net.Listen("tcp", ":1234")
-	os.Remove("mr-socket")
-	l, e := net.Listen("unix", "mr-socket")
+	sockname := masterSock()
+	os.Remove(sockname)
+	l, e := net.Listen("unix", sockname)
 	if e != nil {
 		log.Fatal("listen error:", e)
 	}
