@@ -1,7 +1,7 @@
 package kvraft
 
-import "../linearizability"
-
+import "../porcupine"
+import "../models"
 import "testing"
 import "strconv"
 import "time"
@@ -10,6 +10,8 @@ import "log"
 import "strings"
 import "sync"
 import "sync/atomic"
+import "fmt"
+import "io/ioutil"
 
 // The tester generously allows solutions to complete elections in one second
 // (much more than the paper's range of timeouts).
@@ -322,7 +324,7 @@ func GenericTestLinearizability(t *testing.T, part string, nclients int, nserver
 	cfg.begin(title)
 
 	begin := time.Now()
-	var operations []linearizability.Operation
+	var operations []porcupine.Operation
 	var opMu sync.Mutex
 
 	done_partitioner := int32(0)
@@ -344,24 +346,24 @@ func GenericTestLinearizability(t *testing.T, part string, nclients int, nserver
 			for atomic.LoadInt32(&done_clients) == 0 {
 				key := strconv.Itoa(rand.Int() % nclients)
 				nv := "x " + strconv.Itoa(cli) + " " + strconv.Itoa(j) + " y"
-				var inp linearizability.KvInput
-				var out linearizability.KvOutput
+				var inp models.KvInput
+				var out models.KvOutput
 				start := int64(time.Since(begin))
 				if (rand.Int() % 1000) < 500 {
 					Append(cfg, myck, key, nv)
-					inp = linearizability.KvInput{Op: 2, Key: key, Value: nv}
+					inp = models.KvInput{Op: 2, Key: key, Value: nv}
 					j++
 				} else if (rand.Int() % 1000) < 100 {
 					Put(cfg, myck, key, nv)
-					inp = linearizability.KvInput{Op: 1, Key: key, Value: nv}
+					inp = models.KvInput{Op: 1, Key: key, Value: nv}
 					j++
 				} else {
 					v := Get(cfg, myck, key)
-					inp = linearizability.KvInput{Op: 0, Key: key}
-					out = linearizability.KvOutput{Value: v}
+					inp = models.KvInput{Op: 0, Key: key}
+					out = models.KvOutput{Value: v}
 				}
 				end := int64(time.Since(begin))
-				op := linearizability.Operation{Input: inp, Call: start, Output: out, Return: end}
+				op := porcupine.Operation{Input: inp, Call: start, Output: out, Return: end, ClientId: cli}
 				opMu.Lock()
 				operations = append(operations, op)
 				opMu.Unlock()
@@ -423,13 +425,23 @@ func GenericTestLinearizability(t *testing.T, part string, nclients int, nserver
 
 	cfg.end()
 
-	// log.Printf("Checking linearizability of %d operations", len(operations))
-	// start := time.Now()
-	ok := linearizability.CheckOperationsTimeout(linearizability.KvModel(), operations, linearizabilityCheckTimeout)
-	// dur := time.Since(start)
-	// log.Printf("Linearizability check done in %s; result: %t", time.Since(start).String(), ok)
-	if !ok {
+	res, info := porcupine.CheckOperationsVerbose(models.KvModel, operations, linearizabilityCheckTimeout)
+	if res == porcupine.Illegal {
+		file, err := ioutil.TempFile("", "*.html")
+		if err != nil {
+			fmt.Printf("info: failed to create temp file for visualization")
+		} else {
+			err = porcupine.Visualize(models.KvModel, info, file)
+			if err != nil {
+				fmt.Printf("info: failed to write history visualization to %s\n", file.Name())
+			} else {
+				fmt.Printf("info: wrote history visualization to %s\n", file.Name())
+			}
+		}
 		t.Fatal("history is not linearizable")
+		t.Fatal("history is not linearizable")
+	} else if res == porcupine.Unknown {
+		fmt.Println("info: linearizability check timed out, assuming history is ok")
 	}
 }
 

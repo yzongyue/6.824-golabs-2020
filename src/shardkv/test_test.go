@@ -1,7 +1,7 @@
 package shardkv
 
-import "../linearizability"
-
+import "../porcupine"
+import "../models"
 import "testing"
 import "strconv"
 import "time"
@@ -9,6 +9,7 @@ import "fmt"
 import "sync/atomic"
 import "sync"
 import "math/rand"
+import "io/ioutil"
 
 const linearizabilityCheckTimeout = 1 * time.Second
 
@@ -557,7 +558,7 @@ func TestUnreliable3(t *testing.T) {
 	defer cfg.cleanup()
 
 	begin := time.Now()
-	var operations []linearizability.Operation
+	var operations []porcupine.Operation
 	var opMu sync.Mutex
 
 	ck := cfg.makeClient()
@@ -573,9 +574,9 @@ func TestUnreliable3(t *testing.T) {
 		start := int64(time.Since(begin))
 		ck.Put(ka[i], va[i])
 		end := int64(time.Since(begin))
-		inp := linearizability.KvInput{Op: 1, Key: ka[i], Value: va[i]}
-		var out linearizability.KvOutput
-		op := linearizability.Operation{Input: inp, Call: start, Output: out, Return: end}
+		inp := models.KvInput{Op: 1, Key: ka[i], Value: va[i]}
+		var out models.KvOutput
+		op := porcupine.Operation{Input: inp, Call: start, Output: out, Return: end, ClientId: 0}
 		operations = append(operations, op)
 	}
 
@@ -588,22 +589,22 @@ func TestUnreliable3(t *testing.T) {
 		for atomic.LoadInt32(&done) == 0 {
 			ki := rand.Int() % n
 			nv := randstring(5)
-			var inp linearizability.KvInput
-			var out linearizability.KvOutput
+			var inp models.KvInput
+			var out models.KvOutput
 			start := int64(time.Since(begin))
 			if (rand.Int() % 1000) < 500 {
 				ck1.Append(ka[ki], nv)
-				inp = linearizability.KvInput{Op: 2, Key: ka[ki], Value: nv}
+				inp = models.KvInput{Op: 2, Key: ka[ki], Value: nv}
 			} else if (rand.Int() % 1000) < 100 {
 				ck1.Put(ka[ki], nv)
-				inp = linearizability.KvInput{Op: 1, Key: ka[ki], Value: nv}
+				inp = models.KvInput{Op: 1, Key: ka[ki], Value: nv}
 			} else {
 				v := ck1.Get(ka[ki])
-				inp = linearizability.KvInput{Op: 0, Key: ka[ki]}
-				out = linearizability.KvOutput{Value: v}
+				inp = models.KvInput{Op: 0, Key: ka[ki]}
+				out = models.KvOutput{Value: v}
 			}
 			end := int64(time.Since(begin))
-			op := linearizability.Operation{Input: inp, Call: start, Output: out, Return: end}
+			op := porcupine.Operation{Input: inp, Call: start, Output: out, Return: end, ClientId: i}
 			opMu.Lock()
 			operations = append(operations, op)
 			opMu.Unlock()
@@ -634,13 +635,22 @@ func TestUnreliable3(t *testing.T) {
 		<-ch
 	}
 
-	// log.Printf("Checking linearizability of %d operations", len(operations))
-	// start := time.Now()
-	ok := linearizability.CheckOperationsTimeout(linearizability.KvModel(), operations, linearizabilityCheckTimeout)
-	// dur := time.Since(start)
-	// log.Printf("Linearizability check done in %s; result: %t", time.Since(start).String(), ok)
-	if !ok {
+	res, info := porcupine.CheckOperationsVerbose(models.KvModel, operations, linearizabilityCheckTimeout)
+	if res == porcupine.Illegal {
+		file, err := ioutil.TempFile("", "*.html")
+		if err != nil {
+			fmt.Printf("info: failed to create temp file for visualization")
+		} else {
+			err = porcupine.Visualize(models.KvModel, info, file)
+			if err != nil {
+				fmt.Printf("info: failed to write history visualization to %s\n", file.Name())
+			} else {
+				fmt.Printf("info: wrote history visualization to %s\n", file.Name())
+			}
+		}
 		t.Fatal("history is not linearizable")
+	} else if res == porcupine.Unknown {
+		fmt.Println("info: linearizability check timed out, assuming history is ok")
 	}
 
 	fmt.Printf("  ... Passed\n")

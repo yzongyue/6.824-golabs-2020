@@ -7,9 +7,9 @@ REFERENCE_FILES=(
     src/mrapps/crash.go
     src/mrapps/indexer.go
     src/mrapps/mtiming.go
-    src/mrapps/rtiming.go
-    src/mrapps/crash.go
     src/mrapps/nocrash.go
+    src/mrapps/rtiming.go
+    src/mrapps/wc.go
     src/main/mrsequential.go
     src/main/mrmaster.go
     src/main/mrworker.go

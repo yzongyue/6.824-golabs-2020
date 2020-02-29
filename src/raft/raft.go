@@ -195,14 +195,15 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 }
 
 //
-// the tester calls Kill() when a Raft instance won't
-// be needed again. for your convenience, we supply
-// code to set rf.dead (without needing a lock),
-// and a killed() method to test rf.dead in
-// long-running loops. you can also add your own
-// code to Kill(). you're not required to do anything
-// about this, but it may be convenient (for example)
-// to suppress debug output from a Kill()ed instance.
+// the tester doesn't halt goroutines created by Raft after each test,
+// but it does call the Kill() method. your code can use killed() to
+// check whether Kill() has been called. the use of atomic avoids the
+// need for a lock.
+//
+// the issue is that long-running goroutines use memory and may chew
+// up CPU time, perhaps causing later tests to fail and generating
+// confusing debug output. any goroutine with a long-running loop
+// should call killed() to check whether it should stop.
 //
 func (rf *Raft) Kill() {
 	atomic.StoreInt32(&rf.dead, 1)
