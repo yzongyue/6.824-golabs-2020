@@ -1,7 +1,7 @@
 package shardkv
 
-import "../shardmaster"
-import "../labrpc"
+import "shardmaster"
+import "labrpc"
 import "testing"
 import "os"
 
@@ -12,7 +12,7 @@ import "math/rand"
 import "encoding/base64"
 import "sync"
 import "runtime"
-import "../raft"
+import "raft"
 import "strconv"
 import "fmt"
 import "time"
@@ -80,6 +80,14 @@ func (cfg *config) cleanup() {
 	for gi := 0; gi < cfg.ngroups; gi++ {
 		cfg.ShutdownGroup(gi)
 	}
+	// TODO
+	cfg.mu.Lock()
+	for i := 0; i < len(cfg.masterservers); i++ {
+		if cfg.masterservers[i] != nil {
+			cfg.masterservers[i].Kill()
+		}
+	}
+	cfg.mu.Unlock()
 	cfg.net.Cleanup()
 	cfg.checkTimeout()
 }

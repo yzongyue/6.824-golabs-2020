@@ -8,10 +8,12 @@ package shardkv
 // talks to the group that holds the key's shard.
 //
 
-import "../labrpc"
+import (
+	"labrpc"
+)
 import "crypto/rand"
 import "math/big"
-import "../shardmaster"
+import "shardmaster"
 import "time"
 
 //
@@ -40,6 +42,15 @@ type Clerk struct {
 	config   shardmaster.Config
 	make_end func(string) *labrpc.ClientEnd
 	// You will have to modify this struct.
+	clientId int64
+}
+
+func (ck *Clerk) log(format string, val ...interface{}) {
+	// fmt.Printf(format + "\n", val...)
+}
+
+func (ck *Clerk) getConfigNum() int {
+	return ck.config.Num
 }
 
 //
@@ -56,6 +67,7 @@ func MakeClerk(masters []*labrpc.ClientEnd, make_end func(string) *labrpc.Client
 	ck.sm = shardmaster.MakeClerk(masters)
 	ck.make_end = make_end
 	// You'll have to add code here.
+	ck.clientId = nrand()
 	return ck
 }
 
@@ -67,9 +79,12 @@ func MakeClerk(masters []*labrpc.ClientEnd, make_end func(string) *labrpc.Client
 //
 func (ck *Clerk) Get(key string) string {
 	args := GetArgs{}
+	args.MsgId = nrand()
+	args.ClientId = ck.clientId
 	args.Key = key
 
 	for {
+		args.ConfigNum = ck.getConfigNum()
 		shard := key2shard(key)
 		gid := ck.config.Shards[shard]
 		if servers, ok := ck.config.Groups[gid]; ok {
@@ -89,7 +104,7 @@ func (ck *Clerk) Get(key string) string {
 		}
 		time.Sleep(100 * time.Millisecond)
 		// ask master for the latest configuration.
-		ck.config = ck.sm.Query(-1)
+		ck.config = ck.sm.Query(ck.config.Num + 1)
 	}
 
 	return ""
@@ -101,20 +116,24 @@ func (ck *Clerk) Get(key string) string {
 //
 func (ck *Clerk) PutAppend(key string, value string, op string) {
 	args := PutAppendArgs{}
+	args.MsgId = nrand()
+	args.ClientId = ck.clientId
 	args.Key = key
 	args.Value = value
 	args.Op = op
 
-
 	for {
+		args.ConfigNum = ck.getConfigNum()
 		shard := key2shard(key)
 		gid := ck.config.Shards[shard]
 		if servers, ok := ck.config.Groups[gid]; ok {
+			ck.log("shardclient: config:%+v, servers:%+v\n", ck.config, servers)
 			for si := 0; si < len(servers); si++ {
 				srv := ck.make_end(servers[si])
 				var reply PutAppendReply
 				ok := srv.Call("ShardKV.PutAppend", &args, &reply)
 				if ok && reply.Err == OK {
+					ck.log("shardclient: putappendok, config:%+v, args:%+v\n", ck.config, args)
 					return
 				}
 				if ok && reply.Err == ErrWrongGroup {
@@ -125,7 +144,7 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 		}
 		time.Sleep(100 * time.Millisecond)
 		// ask master for the latest configuration.
-		ck.config = ck.sm.Query(-1)
+		ck.config = ck.sm.Query(ck.config.Num + 1)
 	}
 }
 

@@ -1,11 +1,11 @@
 #### mit 6.824 2020
 
 - [x] lab1 mr
-- [ ] lab2 raft
-- [ ] lab3 kvraft
-- [ ] lab4 shardkv
-    - [ ] challenge1
-    - [ ] challenge2
+- [x] lab2 raft
+- [x] lab3 kvraft
+- [x] lab4 shardkv
+    - [x] challenge1
+    - [x] challenge2
 
 ##### TODO
 - [ ] 优化 if else 减少代码

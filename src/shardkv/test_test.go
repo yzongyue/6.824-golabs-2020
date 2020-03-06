@@ -1,7 +1,11 @@
 package shardkv
 
-import "../porcupine"
-import "../models"
+import (
+	"io/ioutil"
+	"log"
+	"porcupine"
+)
+import "models"
 import "testing"
 import "strconv"
 import "time"
@@ -9,7 +13,6 @@ import "fmt"
 import "sync/atomic"
 import "sync"
 import "math/rand"
-import "io/ioutil"
 
 const linearizabilityCheckTimeout = 1 * time.Second
 
@@ -96,6 +99,7 @@ func TestJoinLeave(t *testing.T) {
 	ck := cfg.makeClient()
 
 	cfg.join(0)
+	log.Println("join gi 0")
 
 	n := 10
 	ka := make([]string, n)
@@ -110,6 +114,7 @@ func TestJoinLeave(t *testing.T) {
 	}
 
 	cfg.join(1)
+	log.Println("join gi 1")
 
 	for i := 0; i < n; i++ {
 		check(t, ck, ka[i], va[i])
@@ -119,6 +124,7 @@ func TestJoinLeave(t *testing.T) {
 	}
 
 	cfg.leave(0)
+	log.Print("leave gi 0")
 
 	for i := 0; i < n; i++ {
 		check(t, ck, ka[i], va[i])
@@ -760,6 +766,8 @@ func TestChallenge1Concurrent(t *testing.T) {
 		ck.Put(ka[i], va[i])
 	}
 
+	log.Println("put 10 key ok")
+
 	var done int32
 	ch := make(chan bool)
 
@@ -794,14 +802,16 @@ func TestChallenge1Concurrent(t *testing.T) {
 		cfg.leave(2)
 		time.Sleep(time.Duration(rand.Int()%900) * time.Millisecond)
 	}
+	log.Println("restart ok")
 
 	time.Sleep(2 * time.Second)
 
 	atomic.StoreInt32(&done, 1)
+	log.Println("after set done")
 	for i := 0; i < n; i++ {
 		<-ch
 	}
-
+	log.Println("client all done")
 	for i := 0; i < n; i++ {
 		check(t, ck, ka[i], va[i])
 	}
