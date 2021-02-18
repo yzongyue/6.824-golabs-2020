@@ -2,3 +2,9 @@ pkg/
 api.key
 *-handin.tar.gz
 .idea/
+
+# For mapreduce lab
+mr-tmp/
+mrmaster
+mrsequential
+mrworker

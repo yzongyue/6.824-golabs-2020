@@ -1,15 +1,16 @@
 package mr
 
 import (
-	"log"
 	"../utils"
+	"fmt"
+	"log"
 )
 import "net"
 import "os"
 import "net/rpc"
 import "net/http"
 
-var logger = utils.MyLogger{utils.DEBUG} // default to DEBUG
+var logger = utils.MyLogger{utils.DEFAULT_LOG_LEVEL, "master.go"} // default to DEBUG
 
 type Master struct {
 	// Your definitions here.
@@ -52,9 +53,9 @@ func (m *Master) server() {
 // if the entire job has finished.
 //
 func (m *Master) Done() bool {
-	ret := false
-	//ret := true
-	logger.Debug("in done!")
+	//ret := false
+	ret := true
+	//logger.Debug("in done!")
 
 
 	// Your code here.
@@ -70,12 +71,14 @@ func (m *Master) Done() bool {
 //
 func MakeMaster(files []string, nReduce int) *Master {
 	// TODO: figure out better place to setup log flags
-	log.SetFlags(log.Ltime | log.Lshortfile)
-
+	log.SetFlags(log.Ltime) // | log.Lshortfile)
 
 	m := Master{}
 
 	// Your code here.
+	for _, fn := range files {
+		logger.Debug(fmt.Sprintf("Got file: %s", fn))
+	}
 
 
 	m.server()

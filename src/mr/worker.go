@@ -4,7 +4,9 @@ import "fmt"
 import "log"
 import "net/rpc"
 import "hash/fnv"
+import "../utils"
 
+var worker_logger = utils.MyLogger{utils.DEFAULT_LOG_LEVEL, "worker.go"} // default to DEBUG
 
 //
 // Map functions return a slice of KeyValue.
@@ -55,6 +57,7 @@ func CallExample() {
 	reply := ExampleReply{}
 
 	// send the RPC request, wait for the reply.
+	worker_logger.Debug("Calling Master.Example...")
 	call("Master.Example", &args, &reply)
 
 	// reply.Y should be 100.
