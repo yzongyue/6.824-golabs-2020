@@ -1,16 +1,21 @@
 package mr
 
-import "log"
+import (
+	"log"
+	"../utils"
+)
 import "net"
 import "os"
 import "net/rpc"
 import "net/http"
 
+var logger = utils.MyLogger{utils.DEBUG} // default to DEBUG
 
 type Master struct {
 	// Your definitions here.
 
 }
+
 
 // Your code here -- RPC handlers for the worker to call.
 
@@ -22,6 +27,7 @@ type Master struct {
 func (m *Master) Example(args *ExampleArgs, reply *ExampleReply) error {
 	reply.Y = args.X + 1
 	return nil
+	//return errors.New("test error 1")
 }
 
 
@@ -47,6 +53,9 @@ func (m *Master) server() {
 //
 func (m *Master) Done() bool {
 	ret := false
+	//ret := true
+	logger.Debug("in done!")
+
 
 	// Your code here.
 
@@ -60,6 +69,10 @@ func (m *Master) Done() bool {
 // nReduce is the number of reduce tasks to use.
 //
 func MakeMaster(files []string, nReduce int) *Master {
+	// TODO: figure out better place to setup log flags
+	log.SetFlags(log.Ltime | log.Lshortfile)
+
+
 	m := Master{}
 
 	// Your code here.
