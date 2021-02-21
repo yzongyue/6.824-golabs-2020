@@ -23,7 +23,65 @@ type ExampleReply struct {
 }
 
 // Add your RPC definitions here.
+type RpcArgs struct {
+	WorkerId string
+	ResultLoc string
+}
 
+type CompleteTaskArgs struct {
+	WorkerId string
+	TaskId string
+	ResultLoc string
+}
+
+type RegisterIdleReply struct {
+	MasterCommand MasterCommand
+	TaskType TaskType
+	TaskId string
+	InputFileLoc string
+	WorkerId string // master will assign id to registered idle workers
+}
+
+//type CompletedTaskReply struct {
+//	MasterCommand MasterCommand
+//	TaskType TaskType
+//	InputFileLoc string
+//}
+
+type HeartbeatArgs struct {
+	WorkerId string
+	TaskId string
+}
+
+type HeartbeatReply struct {
+	Ack bool
+}
+
+type MasterCommand int
+const (
+	ASSIGN_TASK MasterCommand = iota
+	STAND_BY
+	PLEASE_EXIT
+)
+func (cmd MasterCommand) String() string {
+	switch cmd {
+	case ASSIGN_TASK:
+		return "ASSIGN_TASK"
+	case STAND_BY:
+		return "STAND_BY"
+	case PLEASE_EXIT:
+		return "PLEASE_EXIT"
+	default:
+		return "-"
+	}
+}
+
+type TaskType int
+const (
+	MAP TaskType = iota
+	REDUCE
+	NONE
+)
 
 // Cook up a unique-ish UNIX-domain socket name
 // in /var/tmp, for the master.
