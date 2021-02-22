@@ -40,6 +40,7 @@ type RegisterIdleReply struct {
 	TaskId string
 	InputFileLoc string
 	WorkerId string // master will assign id to registered idle workers
+	NReduce int
 }
 
 //type CompletedTaskReply struct {

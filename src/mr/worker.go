@@ -1,7 +1,10 @@
 package mr
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +23,7 @@ type WorkerInfo struct {
 	TaskId string
 	InputFileLoc string
 	ResultFileLoc string
+	NReduce int
 	// Progress float32
 	State TaskState
 }
@@ -88,12 +92,14 @@ func Worker(mapf func(string, string) []KeyValue,
 			workerInfo.TaskType = reply.TaskType
 			workerInfo.TaskId = reply.TaskId
 			workerInfo.InputFileLoc = reply.InputFileLoc
+			workerInfo.NReduce = reply.NReduce
 			//workerInfo.Progress = 0.0
 
+			// TODO: replace this with broadcaster/observer design
 			progress_ch := make(chan float32)
 			done := make(chan struct{})
 			heartbeatStoped := make(chan struct {})
-			// TODO: replace this with broadcaster/observer design
+
 
 			// Actual computing job goroutine
 			go func() {
@@ -134,11 +140,10 @@ func Worker(mapf func(string, string) []KeyValue,
 
 			// Set result location & worker state
 			workerInfo.State = COMPLETED
-			workerInfo.ResultFileLoc = fmt.Sprintf("dummy-%s.txt", strings.Split(workerInfo.TaskId, "-")[2])
 
 		} else if reply.MasterCommand == STAND_BY {
 			worker_logger.Debug(fmt.Sprintf("Got masterCommand: %s", reply.MasterCommand))
-			time.Sleep(100*time.Millisecond)
+			time.Sleep(500*time.Millisecond)
 		} else if reply.MasterCommand == PLEASE_EXIT {
 			worker_logger.Info(fmt.Sprintf("Got masterCommand: %s", reply.MasterCommand))
 			return
@@ -160,26 +165,59 @@ func resetWorkerInfo() {
 	workerInfo.ResultFileLoc = ""
 }
 
-func doMapTask(info *WorkerInfo, mapf func(string, string) []KeyValue, ch chan float32) {
+func doMapTask(info *WorkerInfo, mapf func(string, string) []KeyValue, progress_ch chan float32) {
 
-	// TODO: replace this for loop with actually map job
-	N := 2
-	for i := 0; i < N; i++ {
-		time.Sleep(1*time.Second)
-		ch <- float32(i+1)/float32(N)
+	intermediate := make([][]KeyValue, info.NReduce, info.NReduce)
+	file, err := os.Open(info.InputFileLoc)
+	if err != nil {
+		worker_logger.Error(fmt.Sprintf("Cannot open %v", info.InputFileLoc))
 	}
-	close(ch)
+	content, err := ioutil.ReadAll(file) // assume that content is always able to fit in memory
+	if err != nil {
+		worker_logger.Error(fmt.Sprintf("Cannot read %v", info.InputFileLoc))
+	}
+	file.Close()
+	kva := mapf(info.InputFileLoc, string(content))
+
+	// Distribute map result to R partitions
+	for _, kv := range kva {
+		bucket := ihash(kv.Key) % info.NReduce
+		intermediate[bucket] = append(intermediate[bucket], kv)
+	}
+
+	// Write result as json file
+	mapNum := strings.Split(info.TaskId, "-")[2]
+	for i := 0; i < info.NReduce; i++ {
+		oname := fmt.Sprintf("mr-%s-%d", mapNum, i)
+		tmpfile, err := ioutil.TempFile("", oname)
+		worker_logger.Debug(fmt.Sprintf("Writing map result to file: %v (tmp: %v)", oname, tmpfile.Name()))
+		if err != nil {
+			worker_logger.Error(fmt.Sprintf("Cannot create tempfile: %v", oname))
+		}
+		enc := json.NewEncoder(tmpfile)
+		for _, kv := range intermediate[i] {
+			err := enc.Encode(&kv)
+			if err != nil {
+				worker_logger.Error(fmt.Sprintf("Intermediate file encode error"))
+			}
+		}
+		os.Rename(tmpfile.Name(), oname)
+	}
+	info.ResultFileLoc = fmt.Sprintf("mr-%s-*", mapNum)
+	close(progress_ch)
 }
 
-func doReduceTask(info *WorkerInfo, reducef func(string, []string) string, ch chan float32) {
+func doReduceTask(info *WorkerInfo, reducef func(string, []string) string, progress_ch chan float32) {
 
 	// TODO: replace this for loop with actually map job
 	N := 2
 	for i := 0; i < N; i++ {
 		time.Sleep(1*time.Second)
-		ch <- float32(i+1)/float32(N)
+		progress_ch <- float32(i+1)/float32(N)
 	}
-	close(ch)
+
+	info.ResultFileLoc = "dummy-output.txt"
+	close(progress_ch)
 }
 
 //

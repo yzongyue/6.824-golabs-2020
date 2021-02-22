@@ -22,6 +22,7 @@ type Master struct {
 	mu sync.Mutex
 	workerCount int // TODO: wrap in struct SharedInt
 	taskCount int
+	nReduce int
 }
 
 type KVPair struct {
@@ -280,6 +281,7 @@ func (m *Master) assignTask(workerId string, reply *RegisterIdleReply) bool {
 		reply.TaskType = MAP
 		reply.TaskId = nextMapTaskInfo.TaskId
 		reply.InputFileLoc = nextMapTaskInfo.InputLoc
+		reply.NReduce = m.nReduce
 
 		return true
 
@@ -299,6 +301,8 @@ func (m *Master) assignTask(workerId string, reply *RegisterIdleReply) bool {
 				nextReduceTaskInfo.WorkerId = workerId
 				nextReduceTaskInfo.CurrentState = IN_PROGRESS
 				nextReduceTaskInfo.SinceLastHeartbeat = 0
+				reduceNum := strings.Split(nextReduceTaskInfo.TaskId, "-")[2]
+				nextReduceTaskInfo.InputLoc = fmt.Sprintf("mr-*-%s", reduceNum)
 				m.TaskSummary.Store(nextReduceTaskInfo.TaskId, *nextReduceTaskInfo)
 
 				// Update reply
@@ -306,7 +310,8 @@ func (m *Master) assignTask(workerId string, reply *RegisterIdleReply) bool {
 				reply.MasterCommand = ASSIGN_TASK
 				reply.TaskType = REDUCE
 				reply.TaskId = nextReduceTaskInfo.TaskId
-				reply.InputFileLoc = "idk???" // TODO: figure out how to know intermediate result location
+				reply.InputFileLoc = nextReduceTaskInfo.InputLoc
+				reply.NReduce = m.nReduce
 
 				return true
 			} else {
@@ -363,7 +368,7 @@ func MakeMaster(files []string, nReduce int) *Master {
 	// TODO: figure out better place to setup log flags
 	log.SetFlags(log.Ltime) // | log.Lshortfile)
 
-	m := Master{}
+	m := Master{nReduce: nReduce}
 
 	// Your code here.
 	// Generating Map tasks
