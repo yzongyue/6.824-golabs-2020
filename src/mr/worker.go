@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +39,14 @@ type KeyValue struct {
 	Key   string
 	Value string
 }
+
+// for sorting by key.
+type ByKey []KeyValue
+
+// for sorting by key.
+func (a ByKey) Len() int           { return len(a) }
+func (a ByKey) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByKey) Less(i, j int) bool { return a[i].Key < a[j].Key }
 
 
 //
@@ -209,14 +219,55 @@ func doMapTask(info *WorkerInfo, mapf func(string, string) []KeyValue, progress_
 
 func doReduceTask(info *WorkerInfo, reducef func(string, []string) string, progress_ch chan float32) {
 
-	// TODO: replace this for loop with actually map job
-	N := 2
-	for i := 0; i < N; i++ {
-		time.Sleep(1*time.Second)
-		progress_ch <- float32(i+1)/float32(N)
+	filenames, err := filepath.Glob(info.InputFileLoc)
+	if err != nil {
+		worker_logger.Error(fmt.Sprintf("Cannot find input filepattern: %v", info.InputFileLoc))
 	}
 
-	info.ResultFileLoc = "dummy-output.txt"
+	// Assume all intermediate result can fit in memory (in memory sort)
+	intermediate := []KeyValue{}
+	for _, fn := range filenames {
+		file, err := os.Open(fn)
+		if err != nil {
+			worker_logger.Error(fmt.Sprintf("Cannot open %v", fn))
+		}
+		dec := json.NewDecoder(file)
+		for {
+			var kv KeyValue
+			if err := dec.Decode(&kv); err != nil {
+				break
+			}
+			intermediate = append(intermediate, kv)
+		}
+	}
+	sort.Sort(ByKey(intermediate))
+
+	// opening output file
+	reduceNum := strings.Split(info.TaskId, "-")[2]
+	oname := fmt.Sprintf("mr-out-%s", reduceNum)
+	tmpfile, err := ioutil.TempFile("", oname)
+
+	// applying reducef to every distinct key
+	i := 0
+	for i < len(intermediate) {
+		j := i + 1
+		for j < len(intermediate) && intermediate[j].Key == intermediate[i].Key {
+			j++
+		}
+		values := []string{}
+		for k := i; k < j; k++ {
+			values = append(values, intermediate[k].Value)
+		}
+		output := reducef(intermediate[i].Key, values)
+
+		// this is the correct format for each line of Reduce output.
+		fmt.Fprintf(tmpfile, "%v %v\n", intermediate[i].Key, output)
+
+		i = j
+	}
+
+	os.Rename(tmpfile.Name(), oname)
+	info.ResultFileLoc = oname
 	close(progress_ch)
 }
 

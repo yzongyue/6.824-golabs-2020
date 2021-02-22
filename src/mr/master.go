@@ -21,6 +21,8 @@ type Master struct {
 	TaskSummary sync.Map // each call request from a worker is a goroutine that coudl change this field
 	mu sync.Mutex
 	workerCount int // TODO: wrap in struct SharedInt
+	aliveWorkerCount int
+	deadWorkerCount int
 	taskCount int
 	nReduce int
 }
@@ -77,10 +79,10 @@ func (m *Master) RegisterIdle(args *RpcArgs, reply *RegisterIdleReply) error {
 
 	// Register new worker
 	if args.WorkerId == "" {
-		// TODO: keep track of in-progress/idle/fail-recovering worker counts
 		var newWorkerId string
 		m.mu.Lock()
 		m.workerCount += 1
+		m.aliveWorkerCount += 1
 		newWorkerId = fmt.Sprintf("worker-%d", m.workerCount)
 		m.mu.Unlock()
 		reply.WorkerId = newWorkerId
@@ -122,7 +124,8 @@ func (m *Master) CompletedTask(args *CompleteTaskArgs, reply *RegisterIdleReply)
 		info, ok := value.(TaskInfo)
 		if ok {
 			if info.WorkerId != args.WorkerId {
-				log.Fatal("WorkerId won't match!!")
+				logger.Error("WorkerId won't match!! Probably timed out worker")
+				return nil
 			}
 			info.CurrentState = COMPLETED
 			info.SinceLastHeartbeat = -1
@@ -198,12 +201,19 @@ func (m *Master) Done() bool {
 
 	// Stop and reschedule task for task with SinceLastHeartbeat > 10
 	// TODO: Implement fail recovery
-	/*deadWorkerId, deadTaskId := m.checkDeadWorker()
-	if deadTaskId != "" {
+	deadTasks, ok := m.checkDeadWorker()
+	if ok {
 		// fail recovery
-		logger.Debug("Fail recovery for deadWOrker() and deadTask() ...")
-		m.resetTaskToIdle(deadTaskId)
-	}*/
+		for _, dTaskInfo := range deadTasks {
+			logger.Debug("Fail recovery for deadWOrker() and deadTask() ...")
+			m.mu.Lock()
+			m.aliveWorkerCount -= 1
+			m.deadWorkerCount += 1
+			m.mu.Unlock()
+			m.resetTaskToIdle(dTaskInfo.TaskId)
+		}
+
+	}
 
 	// Check if there is any undo task left
 	if m.checkAllTaskFinished() {
@@ -327,9 +337,8 @@ func (m *Master) assignTask(workerId string, reply *RegisterIdleReply) bool {
 					reply.MasterCommand = PLEASE_EXIT
 
 					// unregsiter worker
-					// TODO: keep track of in-progress/idle/fail-recovering worker counts
 					m.mu.Lock()
-					m.workerCount -= 1
+					m.aliveWorkerCount -= 1
 					m.mu.Unlock()
 				}
 			}
@@ -357,6 +366,35 @@ func (m *Master) checkAllTaskFinished() bool {
 	})
 
 	return !hasUnfinishedTask
+}
+
+func (m *Master) checkDeadWorker() (dTasks []TaskInfo, hasDead bool) {
+
+	hasDead = false
+	m.TaskSummary.Range(func(key, value interface{}) bool {
+		info, ok := value.(TaskInfo)
+		if ok {
+			if info.CurrentState == IN_PROGRESS && info.SinceLastHeartbeat >= 10 {
+				dTasks = append(dTasks, info)
+				hasDead = true
+				return false
+			}
+			return true
+		}
+		return false
+	})
+	return dTasks, hasDead
+}
+
+func (m *Master) resetTaskToIdle(taskId string) {
+	m.TaskSummary.Store(taskId, TaskInfo{
+		TaskId:             taskId,
+		CurrentState:       IDLE,
+		WorkerId:           "",
+		InputLoc:           "",
+		ResultLoc:          "",
+		SinceLastHeartbeat: -1,
+	})
 }
 
 //
