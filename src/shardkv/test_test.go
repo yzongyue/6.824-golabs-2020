@@ -1,18 +1,18 @@
 package shardkv
 
 import (
+	"../models"
+	"../porcupine"
+	"fmt"
 	"io/ioutil"
 	"log"
-	"porcupine"
+	"math/rand"
+	"strconv"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
 )
-import "models"
-import "testing"
-import "strconv"
-import "time"
-import "fmt"
-import "sync/atomic"
-import "sync"
-import "math/rand"
 
 const linearizabilityCheckTimeout = 1 * time.Second
 

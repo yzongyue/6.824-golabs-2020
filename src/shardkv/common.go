@@ -1,6 +1,6 @@
 package shardkv
 
-import "labgob"
+import "../labgob"
 
 //
 // Sharded key/value server.

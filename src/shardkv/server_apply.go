@@ -2,9 +2,10 @@ package shardkv
 
 import (
 	"fmt"
-	"raft"
-	"shardmaster"
 	"time"
+
+	"../raft"
+	"../shardmaster"
 )
 
 func (kv *ShardKV) dataGet(key string) (err Err, val string) {
@@ -27,7 +28,7 @@ func (kv *ShardKV) waitApplyCh() {
 	}()
 	for {
 		select {
-		case <- kv.stopCh:
+		case <-kv.stopCh:
 			return
 		case msg := <-kv.applyCh:
 			if !msg.CommandValid {
@@ -87,7 +88,7 @@ func (kv *ShardKV) applyOp(msg raft.ApplyMsg, op Op) {
 		kv.log(fmt.Sprintf("apply op: msgIdx:%d, op: %+v, data:%v", msgIdx, op, kv.data[shardId][op.Key]))
 		kv.saveSnapshot(msgIdx)
 		if ch, ok := kv.notifyCh[op.ReqId]; ok {
-			nm := NotifyMsg{Err:OK}
+			nm := NotifyMsg{Err: OK}
 			if op.Op == "Get" {
 				nm.Err, nm.Value = kv.dataGet(op.Key)
 			}
@@ -98,7 +99,7 @@ func (kv *ShardKV) applyOp(msg raft.ApplyMsg, op Op) {
 	} else {
 		// config not ready
 		if ch, ok := kv.notifyCh[op.ReqId]; ok {
-			ch <- NotifyMsg{Err:ErrWrongGroup}
+			ch <- NotifyMsg{Err: ErrWrongGroup}
 		}
 		kv.unlock("waitApplyCh")
 		return

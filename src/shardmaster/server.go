@@ -2,13 +2,14 @@ package shardmaster
 
 import (
 	"fmt"
-	"labgob"
-	"labrpc"
 	"log"
-	"raft"
 	"sort"
 	"sync"
 	"time"
+
+	"../labgob"
+	"../labrpc"
+	"../raft"
 )
 
 const WaitCmdTimeOut = time.Millisecond * 500

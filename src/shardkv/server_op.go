@@ -19,7 +19,7 @@ type Op struct {
 }
 
 type NotifyMsg struct {
-	Err Err
+	Err   Err
 	Value string
 }
 

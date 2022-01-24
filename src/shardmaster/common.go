@@ -1,6 +1,6 @@
 package shardmaster
 
-import "labgob"
+import "../labgob"
 
 //
 // Master shard server: assigns shards to replication groups.

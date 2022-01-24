@@ -2,8 +2,9 @@ package shardkv
 
 import (
 	"fmt"
-	"shardmaster"
 	"time"
+
+	"../shardmaster"
 )
 
 func (kv *ShardKV) FetchShardData(args *FetchShardDataArgs, reply *FetchShardDataReply) {

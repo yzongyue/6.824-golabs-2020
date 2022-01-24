@@ -20,12 +20,12 @@ func DPrintf(format string, v ...interface{}) {
 }
 
 type Task struct {
-	FileName      string
-	NReduce       int
-	NMaps         int
-	Seq           int
-	Phase         TaskPhase
-	Alive         bool	// worker should exit when alive is false
+	FileName string
+	NReduce  int
+	NMaps    int
+	Seq      int
+	Phase    TaskPhase
+	Alive    bool // worker should exit when alive is false
 }
 
 func reduceName(mapIdx, reduceIdx int) string {

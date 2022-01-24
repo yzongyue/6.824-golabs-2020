@@ -1,12 +1,13 @@
 package kvraft
 
 import (
-	"labrpc"
+	"crypto/rand"
 	"log"
+	"math/big"
 	"time"
+
+	"../labrpc"
 )
-import "crypto/rand"
-import "math/big"
 
 const (
 	ChangeLeaderInterval = time.Millisecond * 20

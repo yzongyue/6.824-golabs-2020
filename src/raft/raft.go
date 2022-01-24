@@ -20,13 +20,14 @@ package raft
 import (
 	"bytes"
 	"fmt"
-	"labgob"
-	"labrpc"
 	"log"
 	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"../labgob"
+	"../labrpc"
 )
 
 func init() {

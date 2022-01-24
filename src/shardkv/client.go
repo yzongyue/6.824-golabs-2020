@@ -9,12 +9,13 @@ package shardkv
 //
 
 import (
-	"labrpc"
+	"crypto/rand"
+	"math/big"
+	"time"
+
+	"../labrpc"
+	"../shardmaster"
 )
-import "crypto/rand"
-import "math/big"
-import "shardmaster"
-import "time"
 
 //
 // which shard is a key in?

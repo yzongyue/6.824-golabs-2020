@@ -3,12 +3,13 @@ package kvraft
 import (
 	"bytes"
 	"fmt"
-	"labgob"
-	"labrpc"
 	"log"
-	"raft"
 	"sync"
 	"time"
+
+	"../labgob"
+	"../labrpc"
+	"../raft"
 )
 
 func init() {

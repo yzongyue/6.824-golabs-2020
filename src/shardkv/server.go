@@ -3,14 +3,15 @@ package shardkv
 import (
 	"bytes"
 	"fmt"
-	"labgob"
-	"labrpc"
 	"log"
-	"raft"
-	"shardmaster"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"../labgob"
+	"../labrpc"
+	"../raft"
+	"../shardmaster"
 )
 
 const (
